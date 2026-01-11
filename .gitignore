@@ -38,6 +38,7 @@ desktop.ini
 
 # Environment and secrets
 .env
+.env.example
 .env.local
 .env.*.local
 *.pem
