@@ -46,29 +46,12 @@ jobs:
 
       - name: Build .deb package
         run: |
-          # For static musl build, we need to package the binary manually
           mkdir -p debian/ferrite-editor/usr/bin
           cp target/aarch64-unknown-linux-musl/release/ferrite debian/ferrite-editor/usr/bin/
-          # Create minimal deb package
-          cd debian
-          # Create control file
-          mkdir -p ferrite-editor/DEBIAN
-          cat > ferrite-editor/DEBIAN/control << 'DEBCTRL'
-Package: ferrite-editor
-Version: 0.2.7-1
-Architecture: arm64
-Section: editors
-Priority: optional
-Maintainer: OlaProeis <olaproeis@users.noreply.github.com>
-Description: A fast, lightweight text editor for Markdown, JSON, and more
-Ferrite is a fast, lightweight text editor built with Rust and egui.
-DEBCTRL
-          # Create md5sums
-          cd ferrite-editor
-          find usr -type f -exec md5sum {} \; > DEBIAN/md5sums
-          cd ..
-          # Build deb
-          dpkg-deb --build ferrite-editor ../ferrite-editor_arm64.deb
+          mkdir -p debian/ferrite-editor/DEBIAN
+          printf 'Package: ferrite-editor\nVersion: 0.2.7-1\nArchitecture: arm64\nSection: editors\nPriority: optional\nMaintainer: OlaProeis <olaproeis@users.noreply.github.com>\nDescription: A fast, lightweight text editor for Markdown, JSON, and more\n Ferrite is a fast, lightweight text editor built with Rust and egui.\n' > debian/ferrite-editor/DEBIAN/control
+          cd debian/ferrite-editor && find usr -type f -exec md5sum {} \; > DEBIAN/md5sums && cd ..
+          dpkg-deb --build ferrite-editor ../../ferrite-editor_arm64.deb
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
