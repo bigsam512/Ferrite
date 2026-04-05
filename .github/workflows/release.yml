@@ -1,5 +1,5 @@
 # Release workflow - builds for Linux aarch64 (ARM64)
-# Uses native ARM64 runner for reliable compilation
+# Uses cross-rs/cross with Docker for reliable cross-compilation
 
 name: Release
 
@@ -14,7 +14,7 @@ env:
 jobs:
   build-linux-aarch64:
     name: Build Linux (aarch64)
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-latest
     permissions:
       contents: write
 
@@ -22,32 +22,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libxcb-shape0-dev libxcb-xfixes0-dev libfontconfig1-dev
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install cross
+        run: cargo install cross
 
-      - name: Install cargo-deb
+      - name: Install cargo-deb (for packaging)
         run: cargo install cargo-deb
 
-      - name: Build release
-        run: cargo build --release
+      - name: Build release binary using cross
+        run: cross build --release --target aarch64-unknown-linux-gnu
+
+      - name: Package .deb using cargo deb
+        run: cargo deb --no-build --target aarch64-unknown-linux-gnu
 
       - name: Create release archive
         run: |
           mkdir release
-          cp target/release/ferrite release/
+          cp target/aarch64-unknown-linux-gnu/release/ferrite release/
           tar -czvf ferrite-linux-aarch64.tar.gz -C release .
 
-      - name: Build .deb package (Debian/Ubuntu)
-        run: cargo deb --no-build
-
-      - name: Copy packages to workspace root
-        run: |
-          cp target/debian/*.deb ./ferrite-editor_arm64.deb
+      - name: Copy deb package
+        run: cp target/debian/*.deb ./ferrite-editor_arm64.deb
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
