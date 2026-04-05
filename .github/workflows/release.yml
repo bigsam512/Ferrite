@@ -1,7 +1,4 @@
-# Release workflow - builds and publishes when a version tag is pushed
-# Usage: git tag v0.1.0 && git push --tags
-#
-# This workflow builds for Linux aarch64 (ARM64) and creates a GitHub release.
+# Release workflow - builds for Linux aarch64 (ARM64)
 
 name: Release
 
@@ -16,38 +13,28 @@ env:
 jobs:
   build-linux-aarch64:
     name: Build Linux (aarch64)
-    runs-on: ubuntu-24.04-arm
-    # Use native ARM64 GitHub hosted runner
+    runs-on: ubuntu-latest
     permissions:
       contents: write
-
-    strategy:
-      matrix:
-        arch: [arm64]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libxcb-shape0-dev libxcb-xfixes0-dev libfontconfig1-dev
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Build using cross
+        uses: dtolnay/cross-cache@v1
+        with:
+          target: aarch64-unknown-linux-gnu
+          args: --release
 
       - name: Install cargo-deb
         run: |
           cargo install cargo-deb
 
-      - name: Build release
-        run: cargo build --release
-
       - name: Create release archive
         run: |
           mkdir release
-          cp target/release/ferrite release/
+          cp target/aarch64-unknown-linux-gnu/release/ferrite release/
           tar -czvf ferrite-linux-aarch64.tar.gz -C release .
 
       - name: Build .deb package (Debian/Ubuntu)
