@@ -1,5 +1,5 @@
-# Release workflow - builds for Linux aarch64 (ARM64)
-# Uses cross-rs/cross with Docker for reliable cross-compilation
+# Release workflow - builds for Linux aarch64 (ARM64) using musl for full static binary
+# musl libc is compatible with all Linux distros regardless of glibc version
 
 name: Release
 
@@ -22,29 +22,53 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Install Rust with musl target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-unknown-linux-musl
 
-      - name: Install cross
-        run: cargo install cross
+      - name: Install musl tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
 
-      - name: Install cargo-deb (for packaging)
+      - name: Install cargo-deb
         run: cargo install cargo-deb
 
-      - name: Build release binary using cross
-        run: cross build --release --target aarch64-unknown-linux-gnu
-
-      - name: Package .deb using cargo deb
-        run: cargo deb --no-build --target aarch64-unknown-linux-gnu
+      - name: Build release (static binary with musl)
+        run: cargo build --release --target aarch64-unknown-linux-musl
 
       - name: Create release archive
         run: |
           mkdir release
-          cp target/aarch64-unknown-linux-gnu/release/ferrite release/
+          cp target/aarch64-unknown-linux-musl/release/ferrite release/
           tar -czvf ferrite-linux-aarch64.tar.gz -C release .
 
-      - name: Copy deb package
-        run: cp target/debian/*.deb ./ferrite-editor_arm64.deb
+      - name: Build .deb package
+        run: |
+          # For static musl build, we need to package the binary manually
+          mkdir -p debian/ferrite-editor/usr/bin
+          cp target/aarch64-unknown-linux-musl/release/ferrite debian/ferrite-editor/usr/bin/
+          # Create minimal deb package
+          cd debian
+          # Create control file
+          mkdir -p ferrite-editor/DEBIAN
+          cat > ferrite-editor/DEBIAN/control << 'DEBCTRL'
+Package: ferrite-editor
+Version: 0.2.7-1
+Architecture: arm64
+Section: editors
+Priority: optional
+Maintainer: OlaProeis <olaproeis@users.noreply.github.com>
+Description: A fast, lightweight text editor for Markdown, JSON, and more
+Ferrite is a fast, lightweight text editor built with Rust and egui.
+DEBCTRL
+          # Create md5sums
+          cd ferrite-editor
+          find usr -type f -exec md5sum {} \; > DEBIAN/md5sums
+          cd ..
+          # Build deb
+          dpkg-deb --build ferrite-editor ../ferrite-editor_arm64.deb
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
