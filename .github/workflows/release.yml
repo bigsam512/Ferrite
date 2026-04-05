@@ -30,15 +30,8 @@ jobs:
       - name: Add arm64 architecture and fix sources
         run: |
           sudo dpkg --add-architecture arm64
-          # Replace sources.list to use archive.ubuntu.com (no security pocket for arm64 issue)
-          sudo tee /etc/apt/sources.list <<'EOF'
-deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ jammy main restricted universe multiverse
-deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ jammy-updates main restricted universe multiverse
-deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ jammy-backports main restricted universe multiverse
-deb [arch=arm64] http://archive.ubuntu.com/ubuntu/ jammy main restricted universe multiverse
-deb [arch=arm64] http://archive.ubuntu.com/ubuntu/ jammy-updates main restricted universe multiverse
-deb [arch=arm64] http://archive.ubuntu.com/ubuntu/ jammy-backports main restricted universe multiverse
-EOF
+          # Use only archive.ubuntu.com for both architectures to avoid security.ubuntu.com arm64 404
+          printf 'deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ jammy main restricted universe multiverse\ndeb [arch=amd64] http://archive.ubuntu.com/ubuntu/ jammy-updates main restricted universe multiverse\ndeb [arch=amd64] http://archive.ubuntu.com/ubuntu/ jammy-backports main restricted universe multiverse\ndeb [arch=arm64] http://archive.ubuntu.com/ubuntu/ jammy main restricted universe multiverse\ndeb [arch=arm64] http://archive.ubuntu.com/ubuntu/ jammy-updates main restricted universe multiverse\ndeb [arch=arm64] http://archive.ubuntu.com/ubuntu/ jammy-backports main restricted universe multiverse\n' | sudo tee /etc/apt/sources.list
           sudo apt-get update
 
       - name: Install dependencies
