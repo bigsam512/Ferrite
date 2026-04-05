@@ -1,5 +1,5 @@
 # Release workflow - builds for Linux aarch64 (ARM64) using musl for full static binary
-# musl libc is compatible with all Linux distros regardless of glibc version
+# Uses messense/rust-musl-cross Docker image for reliable cross-compilation
 
 name: Release
 
@@ -22,21 +22,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Rust with musl target
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-unknown-linux-musl
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Install musl tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y musl-tools
+      - name: Install cross
+        run: cargo install cross
 
       - name: Install cargo-deb
         run: cargo install cargo-deb
 
-      - name: Build release (static binary with musl)
-        run: cargo build --release --target aarch64-unknown-linux-musl
+      - name: Build release (static musl binary)
+        run: |
+          cross build --release --target aarch64-unknown-linux-musl
 
       - name: Create release archive
         run: |
@@ -49,7 +46,7 @@ jobs:
           mkdir -p debian/ferrite-editor/usr/bin
           cp target/aarch64-unknown-linux-musl/release/ferrite debian/ferrite-editor/usr/bin/
           mkdir -p debian/ferrite-editor/DEBIAN
-          printf 'Package: ferrite-editor\nVersion: 0.2.7-1\nArchitecture: arm64\nSection: editors\nPriority: optional\nMaintainer: OlaProeis <olaproeis@users.noreply.github.com>\nDescription: A fast, lightweight text editor for Markdown, JSON, and more\n Ferrite is a fast, lightweight text editor built with Rust and egui.\n' > debian/ferrite-editor/DEBIAN/control
+          printf 'Package: ferrite-editor\nVersion: 0.2.7-1\nArchitecture: arm64\nSection: editors\nPriority: optional\nMaintainer: OlaProeis <olaproeis@users.noreply.github.com>\nDescription: A fast, lightweight text editor\n Ferrite is a fast, lightweight text editor.\n' > debian/ferrite-editor/DEBIAN/control
           cd debian/ferrite-editor && find usr -type f -exec md5sum {} \; > DEBIAN/md5sums && cd ..
           dpkg-deb --build ferrite-editor ../../ferrite-editor_arm64.deb
 
