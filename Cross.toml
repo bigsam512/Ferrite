@@ -1,2 +1,2 @@
 [target.aarch64-unknown-linux-musl]
-image = "messense/rust-musl-cross:aarch64"
+image = "messense/rust-musl-cross:aarch64-musl"
