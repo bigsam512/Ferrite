@@ -16,12 +16,15 @@ env:
 jobs:
   build-linux-aarch64:
     name: Build Linux (aarch64)
-    runs-on: ubuntu-latest
-    # Use native ARM64 runner
+    runs-on: ubuntu-24.04-arm
+    # Use native ARM64 GitHub hosted runner
+    permissions:
+      contents: write
+
     strategy:
       matrix:
         arch: [arm64]
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -48,42 +51,11 @@ jobs:
           tar -czvf ferrite-linux-aarch64.tar.gz -C release .
 
       - name: Build .deb package (Debian/Ubuntu)
-        run: cargo deb --no-build
+        run: cargo deb --no-build --target aarch64-unknown-linux-gnu
 
       - name: Copy packages to workspace root
         run: |
           cp target/debian/*.deb ./ferrite-editor_arm64.deb
-
-      - name: Upload tar.gz artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ferrite-linux-aarch64
-          path: ferrite-linux-aarch64.tar.gz
-
-      - name: Upload .deb artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ferrite-linux-deb
-          path: ferrite-editor_arm64.deb
-
-  # Create GitHub Release with aarch64 artifact
-  release:
-    name: Create Release
-    needs: [build-linux-aarch64]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    
-    steps:
-      - name: Download Linux aarch64 artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: ferrite-linux-aarch64
-
-      - name: Download Linux .deb artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: ferrite-linux-deb
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
