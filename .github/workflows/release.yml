@@ -1,4 +1,5 @@
 # Release workflow - builds for Linux aarch64 (ARM64)
+# Uses Ubuntu 22.04 (glibc 2.35) cross-compilation for compatibility with Debian 12 (glibc 2.36)
 
 name: Release
 
@@ -13,8 +14,7 @@ env:
 jobs:
   build-linux-aarch64:
     name: Build Linux (aarch64)
-    # GitHub officially hosted ARM64 runner
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-22.04
     permissions:
       contents: write
 
@@ -22,28 +22,41 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install Rust with aarch64 target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-unknown-linux-gnu
+
+      - name: Add arm64 architecture and update sources
+        run: |
+          sudo dpkg --add-architecture arm64
+          # Ubuntu 22.04 (jammy) has arm64 packages available
+          sudo sed -i 's/http:\/\/security.ubuntu.com\/ubuntu/http:\/\/archive.ubuntu.com\/ubuntu/' /etc/apt/sources.list
+          sudo apt-get update || true
+
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libxcb-shape0-dev libxcb-xfixes0-dev libfontconfig1-dev
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+          sudo apt-get install -y crossbuild-essential-arm64 pkg-config
+          sudo apt-get install -y libgtk-3-dev:arm64 libxcb-shape0-dev:arm64 libxcb-xfixes0-dev:arm64 libfontconfig1-dev:arm64
 
       - name: Install cargo-deb
         run: cargo install cargo-deb
 
       - name: Build release
-        run: cargo build --release
+        env:
+          PKG_CONFIG_ALLOW_CROSS: 1
+          PKG_CONFIG_PATH: /usr/lib/aarch64-linux-gnu/pkgconfig
+          PKG_CONFIG_SYSROOT_DIR: /
+        run: cargo build --release --target aarch64-unknown-linux-gnu
 
       - name: Create release archive
         run: |
           mkdir release
-          cp target/release/ferrite release/
+          cp target/aarch64-unknown-linux-gnu/release/ferrite release/
           tar -czvf ferrite-linux-aarch64.tar.gz -C release .
 
       - name: Build .deb package (Debian/Ubuntu)
-        run: cargo deb --no-build
+        run: cargo deb --no-build --target aarch64-unknown-linux-gnu
 
       - name: Copy packages to workspace root
         run: |
