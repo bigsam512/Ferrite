@@ -27,12 +27,18 @@ jobs:
         with:
           targets: aarch64-unknown-linux-gnu
 
-      - name: Add arm64 architecture and sources
+      - name: Add arm64 architecture and fix sources
         run: |
           sudo dpkg --add-architecture arm64
-          # Add explicit arm64 sources from ports.ubuntu.com (doesn't have security pocket issues)
-          echo 'deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ jammy main restricted universe multiverse' | sudo tee /etc/apt/sources.list.d/arm64.list
-          echo 'deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ jammy-updates main restricted universe multiverse' | sudo tee -a /etc/apt/sources.list.d/arm64.list
+          # Replace sources.list to use archive.ubuntu.com (no security pocket for arm64 issue)
+          sudo tee /etc/apt/sources.list <<'EOF'
+deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ jammy main restricted universe multiverse
+deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ jammy-updates main restricted universe multiverse
+deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ jammy-backports main restricted universe multiverse
+deb [arch=arm64] http://archive.ubuntu.com/ubuntu/ jammy main restricted universe multiverse
+deb [arch=arm64] http://archive.ubuntu.com/ubuntu/ jammy-updates main restricted universe multiverse
+deb [arch=arm64] http://archive.ubuntu.com/ubuntu/ jammy-backports main restricted universe multiverse
+EOF
           sudo apt-get update
 
       - name: Install dependencies
