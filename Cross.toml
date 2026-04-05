@@ -1,2 +1,2 @@
 [target.aarch64-unknown-linux-gnu]
-image = "messense/debian-bookworm-aarch64:latest"
+image = "ghcr.io/cross-rs/aarch64-unknown-linux-gnu:main"
